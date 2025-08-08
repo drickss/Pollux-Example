@@ -1,0 +1,18 @@
+import astropy.table as at
+import matplotlib as plt
+
+tab = at.Table.read("/Users/dricks/daijas_project/galah_dr4_allstar_240705.fits")
+aspcap = at.Table.read("/Users/dricks/daijas_project/allStar-dr17-synspec_rev1.fits", hdu=1)
+aspcap["gaiadr3_source_id"] = aspcap["GAIAEDR3_SOURCE_ID"].copy()
+flag_sp = 0
+flag_sp = ["ANDFLAG"].copy()
+combo = at.join(tab, aspcap, keys=["gaiadr3_source_id"])
+clean_cut = (combo["snr_px_ccd3"] > 90)
+(combo["flag_sp"] == 0)
+(combo["flag_red"] == 0)
+((combo["ASPCAPFLAG"]&2**23) == 0)
+(combo["FE_H_FLAG"] == 0)
+((combo["EXTRATARG"]&2**4) == 0)
+((combo["EXTRATARG"]&2**2) == 0)
+color_mag_cut = (combo["TEFF"] < 6000) & (combo["TEFF"] > 5050) & (combo["LOGG"] < 3.0) & (combo["LOGG"] > 1.0)
+combo[(clean_cut) & (color_mag_cut)]
