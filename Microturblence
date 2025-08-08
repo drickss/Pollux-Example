@@ -1,0 +1,18 @@
+import astropy.table as at
+import matplotlib as plt
+
+tab = at.Table.read("/Users/dricks/daijas_project/galah_dr4_allstar_240705.fits")
+aspcap = at.Table.read("/Users/dricks/daijas_project/allStar-dr17-synspec_rev1.fits", hdu=1)
+aspcap["gaiadr3_source_id"] = aspcap["GAIAEDR3_SOURCE_ID"].copy()
+test = at.join(tab, aspcap, keys=["gaiadr3_source_id"])
+import matplotlib.pyplot as plt
+
+plt.scatter(test["vmic"], test["VMICRO"])
+plt.title("Comparison of Microturbulence from GALAH DR4 and ASPCAP DR17")
+plt.xlabel("GALAH DR4 Microturbulence")
+plt.ylabel("ASPCAP DR17 Microturbulence")
+min_val = min(test["vmic"].min(), test["VMICRO"].min())
+max_val = max(test["vmic"].max(), test["VMICRO"].max())
+plt.plot([min_val, max_val], [min_val, max_val], color='black', linestyle='--', label='1:1 Line')
+plt.legend()
+plt.show()
