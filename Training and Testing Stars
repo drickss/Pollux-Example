@@ -1,0 +1,50 @@
+import numpy as np
+from astropy.table import Table
+
+data_table = Table.read("/Users/dricks/daijas_project/140313003601012_allstar_fit_spectrum.fits")
+catalog_table = Table.read("/Users/dricks/daijas_project/allStar-dr17-synspec_rev1.fits")
+cleaned_table = Table()
+
+label_cols =["TEFF", "LOGG", "FE_H","SNR"]
+error_cols = ["TEFF_ERR", "LOGG_ERR", "FE_H_ERR", "SNR"]
+
+apogee_id = catalog_table["APOGEE_ID"]
+matched_row = catalog_table[catalog_table["APOGEE_ID"] == apogee_id]
+if len(matched_row) == 0:
+    print(f"Star with APOGEE_ID {apogee_id} not found in catalog.")
+else:
+    row = matched_row[0]
+    print(f"Star with APOGEE_ID {apogee_id} found in catalog.")
+
+    flux = np.array(data_table["sob"])
+    good_flux = flux[flux != 0]
+    flux_median = np.median(good_flux) if len(good_flux) > 0 else 1.0
+    flux[flux == 0] = flux_median
+    data_table["sob"] = flux
+
+    for label, err in zip(label_cols, error_cols):
+        if label not in catalog_table.colnames:
+            cleaned_table[label] = np.full(len(cleaned_table), np.nan)
+        if err not in catalog_table.colnames:
+            cleaned_table[err] = np.full(len(cleaned_table), np.nan)
+        if np.isnan(catalog_table[label][0]) == False:
+            cleaned_table[label] = row[label]
+            cleaned_table[err] = row[err]
+snr_limit = 100
+rgb_logg_upper = 3.5
+
+is_rgb = (
+	(cleaned_table["TEFF"] > 3500) &
+	(cleaned_table["TEFF"] < 5500) &
+	(cleaned_table["LOGG"] > 0) &
+	(cleaned_table["LOGG"] < rgb_logg_upper)
+)
+
+sample_a = cleaned_table[(cleaned_table["SNR"] > snr_limit) & is_rgb][:5000]
+sample_b = cleaned_table[(cleaned_table["SNR"] > snr_limit) & is_rgb][:10000]
+subset_of_ids = catalog_table["APOGEE_ID"][0:200]
+for apogee_id in subset_of_ids:
+    star = catalog_table[catalog_table["APOGEE_ID"]==apogee_id][0]
+    with open("speclist.txt", "a") as file:
+        file.write(str(star["TELESCOPE"]) + "/" + str(star["FIELD"]) + "/apStar-dr17-"+str(star["APOGEE_ID"])+'.fits \n')
+! wget -nv -r -nH --cut-dirs=6 -i speclist.txt -B https://data.sdss.org/sas/dr17/apogee/spectro/redux/dr17/stars/
